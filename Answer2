@@ -1,0 +1,318 @@
+#include <bits/stdc++.h>
+//для этого крутого импорта нужен GNU C++ компилятор, если у вас другой, то удалите его и заимпортите нужные вручную :С
+//давайте без виндовых импортов, плез :С
+//ну тут вам они вообще не за чем
+
+using namespace std;
+
+//Сортировать нужно в неубывающем порядке (1, 3, 2, 6, 2, 4) => (1, 2, 2, 3, 4, 6)
+
+vector<int> randomVector(size_t size)
+{
+    vector<int> v(size);
+    random_device r;
+    generate(v.begin(), v.end(), [&]{return r();});
+    return v;
+}
+
+int GetMinrun(int n) //Получаем minrun
+{
+    int r = 0;
+    while (n >= 64) {
+        r |= n & 1;
+        n >>= 1;
+    }
+    return n + r;
+}
+
+void Rangers_Unite(vector<int>::iterator LeftB,
+                   vector<int>::iterator RightB,vector<int>::iterator RightE)
+{
+        //LeftB - начало левого интервала
+        //RightB - начало правого интервала
+        //RightE - конец правого интервала
+    int count = 0;
+    vector<int> result(LeftB,RightB);
+    //RightB++;
+    auto current = result.begin();//Курсор по вспомогательному массиву
+    while(current != result.end() && RightB != RightE){
+    if (*current <= *RightB) {
+    *(LeftB + count) = *current;
+    count++;
+    current++;
+    }
+    else{
+    *(LeftB + count) = *RightB;
+    count++;
+    RightB++;
+    }
+    }
+    if(current == result.end()) {
+    do {
+    *(LeftB + count) = *RightB;
+    count++;
+    RightB++;
+    } while (count != distance(LeftB,RightE));
+
+    }
+    else{
+    do {
+    *(LeftB + count) = *current;
+    count++;
+    current++;
+    } while (count != distance(LeftB,RightE));
+    result.clear();
+    }
+}
+
+//Если не знаете как пользоваться итераторами, то комментите этот дефайн и реализуйте метод c индексами с:
+#define ITER
+
+#ifdef ITER
+
+void insertionSort(vector<int>::iterator begin, vector<int>::iterator end)
+{
+    for (auto i = begin; i != end; ++i) {
+        rotate(upper_bound(begin, i, *i), i, i+1);
+    }
+}
+//сортировать нужно интервал [begin, end)
+void timsort(vector<int>::iterator begin, vector<int>::iterator end)
+{
+    int Lenght = distance(begin,end);//Длина главного массива
+    int minrun = GetMinrun(Lenght);
+
+    vector<int> Begs; //Индексы начала подмассивов
+    vector<int> Lens;//Длины подмассивов
+
+    bool Catastrophe = false;; //Массив основной закончился
+    bool Crash; // Закончился упорядоченный кусок
+
+    auto curbeg = begin;//Начало текущего run
+    auto curend = curbeg;//Конец текущего run
+
+
+    if(Lenght <= 64)
+        insertionSort(begin,end);
+    else {
+        //Шаг 1 Разбивка на подмассивы
+        do {
+            int count = 0;
+            curbeg = curend;//Переставляет конец предыдущего подмассива на текущее начало
+            curend++;
+            if (curend == end) //В последнем подмассиве 1 элемент//jhojhkjlkhj
+               Catastrophe = true;
+            //    Begs.push_back(distance(begin, curbeg));
+             //   Lens.push_back(1);
+            //    break;
+            //}
+            if (*(curbeg + 1) >= *curbeg && !Catastrophe) {
+                if (*(curbeg + 2) >= *(curbeg + 1)) {
+                    Crash = false;
+                    while (!Catastrophe && !Crash) {
+                        ++curend;
+                        if (curend == end)
+                            Catastrophe = true; // Закончился основной массив
+                        else if ((*(curend - 1) > *curend))
+                            Crash = true; // Закончился упорядоченный кусок
+                    }
+                        Begs.push_back(distance(begin, curbeg));
+                    if ((distance(curbeg, curend) > minrun) || Catastrophe)//Если длина упорядоченного куска больше min run или эьо конец массива
+                        Lens.push_back(distance(curbeg, curend));
+                    else {
+                        count = distance(curbeg, curend);
+                        do {
+                            count++;
+                            curend++;
+                            if (curend == end)
+                                Catastrophe = true; // Закончился основной массив
+                        } while (!Catastrophe && count < minrun);
+                        Lens.push_back(count);
+                    }
+                } else
+                    {
+                    Begs.push_back(distance(begin, curbeg));
+                    count = 2;
+                    do {
+                        count++;
+                        curend++;
+                        if (curend == end)
+                            Catastrophe = true; // Закончился основной массив
+                    } while (!Catastrophe && count < minrun);
+                    if(!Catastrophe)//Войдёт в интервал, если не конец массив
+                        curend++;
+                    if(curend == end)
+                        curend--;
+                    Lens.push_back(count);
+                };
+            } else if (*(curbeg + 1) < *curbeg && !Catastrophe) {
+                if (*(curbeg + 2) <= *(curbeg + 1)) {
+                    Crash = false;
+                    while (!Catastrophe && !Crash) {
+                        curend++;
+                        if (curend == end)
+                            Catastrophe = true; // Закончился основной массив
+                        else if ((*(curend - 1) < *curend)) {
+                            Crash = true; // Закончился упорядоченный кусок
+                            reverse(curbeg, curend);
+                        }
+                    }
+                    Begs.push_back(distance(begin, curbeg));
+                    if ((distance(curbeg, curend) > minrun) || Catastrophe)//Упорядоченный кусок больше minrun
+                        Lens.push_back(distance(curbeg, curend));
+                    else {
+                        count = distance(curbeg, curend);
+                        do {
+                            count++;
+                            curend++;
+                            if (curend == end)
+                                Catastrophe = true; // Закончился основной массив
+                        } while (!Catastrophe && count < minrun);
+                        Lens.push_back(count);
+                    }
+                } else {
+                    Begs.push_back(distance(begin, curbeg));
+                    count = 2;
+                    do {
+                        count++;
+                        curend++;
+                        if (curend == end)
+                            Catastrophe = true; // Закончился основной массив
+                    } while (!Catastrophe && count < minrun);
+                    if(!Catastrophe)
+                        curend++;
+                    if(curend == end)
+                        curend--;
+                    Lens.push_back(count);
+                };
+            }
+                insertionSort(curbeg, curend);   //Шаг 2 сортировка интервала
+                vector<int> tester(curbeg, curend);
+                tester.clear();
+        } while (!Catastrophe);
+        //Шаг 3 слияние
+        int i = 0;
+        bool unit;
+        if(Lens.size() > 2){
+            do{
+                //[i+2] = X Верхний элемент
+                //[i+1] = Y Средний элемент
+                //[i] = Z Нижний элемент
+                while(!((Lens[i + 2]) >= (Lens[i+1]+Lens[i])) || !(Lens[i+1] >= Lens[i + 2]))
+                {
+                    if(!unit)
+                        i++;
+                    unit = false;
+                    if(Lens[i + 1] <= Lens[i] && Lens.size() >= 2)
+                    {
+                        Rangers_Unite(begin+Begs[i+1],begin+Begs[i+2],begin+Begs[i+2]+Lens[i+2]);
+                        unit = true;
+                        Lens[i+1]+=Lens[i+2];
+                        Lens.erase(Lens.begin()+i+2);
+                        Begs.erase(Begs.begin()+i+2);
+                        if (Lens.size() - i > 2 && i > 0)
+                            i--;
+
+                    }
+                    else{
+                        Rangers_Unite(begin+Begs[i],begin+Begs[i+1],begin+Begs[i+1]+Lens[i+1]);
+                        unit = true;
+                        Lens[i]+=Lens[i+1];
+                        Lens.erase(Lens.begin()+i+1);
+                        Begs.erase(Begs.begin()+i+1);
+                        if (Lens.size() - i > 2 && i > 0)
+                            i--;
+                    }
+                    if (Lens.size() == 2)
+                        break;
+                }
+                if (Lens.size() - i > 2 && i > 0)
+                    i++;
+            }while(Lens.size() > 2);
+        }
+        if(Lens.size() > 1){
+            insertionSort(begin,begin+Lens[0]); //В общем, если это закоментить, то в тестах, будет вылезать один рандомный импостер
+            insertionSort(begin+Lens[0],end);//И это тоже // Но так как он один, то сортиравка вставками должна быстро выкинуть его за борт
+            Rangers_Unite(begin,begin+Lens[0],end);
+        }
+    }
+}
+
+#else
+
+//индексация должна быть с нуля, сортировать нужно интервал [begin, end)
+void timsort(vector<int> &vector, int begin, int end) {
+
+}
+
+#endif
+
+int testcaseNumber = 1;
+
+bool testcase(const vector<int> &testVector,
+              const vector<int>::const_iterator &begin,
+              const vector<int>::const_iterator &end
+) {
+    try {
+        vector<int> f(testVector), s(testVector);
+        auto fl = f.begin() + distance(testVector.begin(), begin), fr = fl + distance(begin, end);
+        auto sl = s.begin() + distance(testVector.begin(), begin), sr = sl + distance(begin, end);
+        sort(fl, fr);
+        cout << testcaseNumber++ << " testcase: ";
+#ifdef ITER
+        timsort(sl, sr);
+#else
+        timsort(s, distance(s.begin(), sl), distance(s.begin(), sr));
+#endif
+        if (equal(fl, fr, sl)) {
+            cout << "Test passed" << endl;
+            return true;
+        }
+
+        cout << "Something is wrong" << endl;
+        auto iter = fl;
+        cout << "Answer:      ";
+        while (iter != fr) {
+            cout << setw(4) << *iter << ' ';
+            iter++;
+        }
+        cout << endl << "Your output: ";
+        iter = sl;
+        while (iter != sr) {
+            cout << setw(4) << *iter << ' ';
+            iter++;
+        }
+        cout << endl;
+        return false;
+    }
+    catch (...) {
+        cout << "exception >_<" << endl;
+        return false;
+    }
+}
+
+int main() {
+
+    vector<int> testVector;
+    srand(time(nullptr));
+    for(int i = 0; i < (1<<10); ++i){
+        testVector.push_back(rand()%1000);
+    }
+    bool result = true;
+    result &= testcase(testVector, testVector.begin(), testVector.end());
+    result &= testcase(testVector, testVector.begin(), testVector.begin() + 3);
+    result &= testcase(testVector, testVector.begin(), testVector.begin());
+    result &= testcase(testVector, testVector.begin() + 5, testVector.begin() + 5 + 3);
+    result &= testcase(testVector, testVector.begin() + 13, testVector.begin() + 13 + 10);
+    result &= testcase(testVector, testVector.begin() + 34, testVector.begin() + 34 + 9);
+
+    vector<int> newTestVector = {1};//тут можете добавлять свои тестовые данные
+    //тесты пишите по аналогии с тем, как они написаны выше
+    result &= testcase(newTestVector, newTestVector.begin(), newTestVector.end());
+
+
+    cout << "Result: ";
+    cout << ((result) ? "Your solution passed the pretests c:"
+                      : "Something's wrong, I can feel it. Just a feeling I've got, like something's about to happen, but I don't know what")
+         << endl;
+}
